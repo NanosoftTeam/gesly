@@ -1,2 +1,2 @@
-# wesly
+# gesly
 Discord Reborn, kinda...
