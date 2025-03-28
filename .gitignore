@@ -3,41 +3,60 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# OSX useful to ignore
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# C extensions
+*.so
+
 # Distribution / packaging
 .Python
+env/
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.dist-info/
 *.egg-info/
+.installed.cfg
 *.egg
 
-# Virtual environments
-venv/
-.env/
-*.venv
+# IntelliJ Idea family of suites
+.idea
+*.iml
+## File-based project format:
+*.ipr
+*.iws
+## mpeltonen/sbt-idea plugin
+.idea_modules/
 
-# Editor files
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# Logs and databases
-*.log
-*.sqlite3
-
-# BeeWare-specific files
-*.pyc
-*.pyo
-*.pyd
-.briefcase/
-.beeware/
-__pycache__/
-
-# Toga-specific files
-*.so
-*.dll
-*.dylib
+# Briefcase log files
+logs/
