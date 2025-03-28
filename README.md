@@ -1,2 +1,2 @@
 # gesly
-Discord Reborn, kinda...
+Discord Reborn, kinda
