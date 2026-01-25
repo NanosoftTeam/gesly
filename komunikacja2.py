@@ -12,9 +12,23 @@ import urllib.request
 from http.cookies import SimpleCookie
 from json import loads as json_loads
 from os import environ
+from time import sleep
 import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
+
+class TunnelCreateException(Exception):
+    """Wyjątek zgłaszany przy błędzie tworzenia tunelu."""
+    pass
+class TunnelFetchException(Exception):
+    """Wyjątek zgłaszany przy błędzie pobierania tunelu."""
+    pass
+class TunnelUpdateException(Exception):
+    """Wyjątek zgłaszany przy błędzie aktualizacji tunelu."""
+    pass
+class TunnelSystemUpdateException(Exception):
+    """Wyjątek zgłaszany przy błędzie aktualizacji systemu."""
+    pass
 
 class UrllibClient:
     """Klient HTTP z obsługą sesji i ciasteczek."""
@@ -43,7 +57,7 @@ TYP_POLACZENIA:
 0 - Stwórz nowy tunel
 1 - Pobierz dane użytkowników z tunelu
 2 - Wymień swoje stare IPv4 na nowe w tunelu
-3 - Wymaż tunel (konwersacja zostaje na komputyerach użytkowników)
+3 - Wymaż tunel (konwersacja zostaje na komputerach użytkowników)
 9 - Aktualizacja "siebie" w systemie
 """
 
@@ -56,28 +70,7 @@ def algorytm(tekst1, tekst2):
     
     return wynik
 
-def wymien_aktywnych_uzytkownikow(TYP_POLACZENIA: int, username: str = "", destination_username: str = "", data: str = "", operateOnSystem: bool = True) -> str:
-    """Funkcja bauzjąca na stronie rentry.co w celu uzyskania IPv4 aktywnych użytkowników."""
-
-    client, cookie = UrllibClient(), SimpleCookie()
-    cookie.load(vars(client.get(f"https://rentry.co"))['headers']['Set-Cookie'])
-    csrftoken = cookie['csrftoken'].value
-
-
-    URLs = {
-        0: "https://rentry.co/api/new",
-        1: f"https://rentry.co/api/fetch/tunnel-{username}-{destination_username}-gesly",
-        2: "https://rentry.co/api/edit/",
-        3: "https://rentry.co/api/delete/tunnel-{username}-{destination_username}-gesly",
-        9: "https://rentry.co/api/edit/tunnel-system-gesly",
-    }
-    
-    # W dacie mamy nasze IPv4. Nadpisujemy je naszą nazwą użytkownika.
-    if TYP_POLACZENIA == 1 or TYP_POLACZENIA == 2:
-        data = f"{username}:{data}"
-    
-    _headers = {"Referer": f"https://rentry.co"}
-    
+def zwroc_payloads(type, csrftoken, username, destination_username, data, operateOnSystem):
     payloads = {
         0: {
             "csrfmiddlewaretoken": csrftoken,
@@ -91,7 +84,9 @@ def wymien_aktywnych_uzytkownikow(TYP_POLACZENIA: int, username: str = "", desti
             "edit_code": f"GeslySystemPassword123" if operateOnSystem else f"{algorytm(username, destination_username)}",
         },
         2: {
-            "do": "zaimplementowania",
+            "csrfmiddlewaretoken": csrftoken,
+            "text": f"{data}",
+            "edit_code": f"GeslySystemPassword123" if operateOnSystem else f"{algorytm(username, destination_username)}",
         },
         3: {
             "do": "zaimplementowania",
@@ -103,111 +98,205 @@ def wymien_aktywnych_uzytkownikow(TYP_POLACZENIA: int, username: str = "", desti
             "url": "tunnel-system-gesly",
         },
     }
+    return payloads[type]
+
+def wymien_aktywnych_uzytkownikow(TYP_POLACZENIA: int, username: str = "", destination_username: str = "", data: str = "", operateOnSystem: bool = True, ip: str = "") -> str:
+    """Funkcja bauzjąca na stronie rentry.co w celu uzyskania IPv4 aktywnych użytkowników."""
+
+    client, cookie = UrllibClient(), SimpleCookie()
+    cookie.load(vars(client.get(f"https://rentry.co"))['headers']['Set-Cookie'])
+    csrftoken = cookie['csrftoken'].value
+    
+    # W dacie mamy nasze IPv4. Nadpisujemy je naszą nazwą użytkownika.
+    if TYP_POLACZENIA == 1 or TYP_POLACZENIA == 2:
+        if data != ">deleteSignal<":
+            data = f"{username}- {data}"
+    
+    _headers = {"Referer": f"https://rentry.co"}
     
     if TYP_POLACZENIA == 0:
-        result_create = client.post(f"https://rentry.co/api/new", payloads[TYP_POLACZENIA], headers=_headers)
-        # print(result_create)
+        result_create = client.post(f"https://rentry.co/api/new", zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem), headers=_headers)
+        if "errors" in result_create.data:
+            raise TunnelCreateException("Błąd tworzenia tunelu. Prawdopodobnie tunel już istnieje.")
         return "Stworzono tunel."
     elif TYP_POLACZENIA == 1:
         url = f"tunnel-system-gesly" if operateOnSystem else f"tunnel-{username}-{destination_username}-gesly"
-        result_fetch = client.post(f"https://rentry.co/api/fetch/{url}", payloads[TYP_POLACZENIA], headers=_headers).data
-        # print(result_fetch)
+        result_fetch = client.post(f"https://rentry.co/api/fetch/{url}", zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem), headers=_headers).data
+        if "errors" in result_fetch:
+            raise TunnelFetchException("Błąd pobierania danych użytkowników.")
         return result_fetch
+    elif TYP_POLACZENIA == 2:
+        current_users = json_loads(wymien_aktywnych_uzytkownikow(1, username=username, operateOnSystem=True))["content"]["text"]
+        print("Aktualna lista użytkowników:\n", current_users)
+        url = f"tunnel-system-gesly" if operateOnSystem else f"tunnel-{username}-{destination_username}-gesly"
+        if data == ">deleteSignal<":
+            # Usunięcie użytkownika z systemu
+            current_users_list = [x.strip() for x in current_users.splitlines()]
+            current_users_list = [line for line in current_users_list if line.split("-")[0] != username]
+            data = "\n".join(current_users_list)
+            print("Nowa lista użytkowników po usunięciu:\n", data)
+            zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem)
+            result_update = client.post(f"https://rentry.co/api/edit/{url}", zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem), headers=_headers)
+            if "errors" in result_update.data:
+                raise TunnelUpdateException("Błąd aktualizacji bazy.")
+            print("Zaktualizowano bazę.")
+            return(result_update.data)
+        else:
+            data = current_users + f"\n{data}"
+            print("Nowa lista użytkowników:\n", data)
+            result_update = client.post(f"https://rentry.co/api/edit/{url}", zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem), headers=_headers)
+            if "errors" in result_update.data:
+                raise TunnelUpdateException("Błąd aktualizacji danych użytkowników.")
+            print("Zaktualizowano dane użytkowników.")
+            return(result_update.data)
     elif TYP_POLACZENIA == 9:
-        result_update = client.post(f"https://rentry.co/api/new", payloads[TYP_POLACZENIA], headers=_headers)
-        print(result_update.data)
-        return "Zaktualizowano dane systemowe."
+        result_update = client.post(f"https://rentry.co/api/new", zwroc_payloads(TYP_POLACZENIA, csrftoken, username, destination_username, data, operateOnSystem), headers=_headers)
+        if "errors" in result_update.data:
+            raise TunnelSystemUpdateException("Błąd aktualizacji danych systemowych.")
+        print("Zaktualizowano dane systemowe.")
+        return(result_update.data)
 
-wymien_aktywnych_uzytkownikow(9, data="Zawartosc")
+def sluchaj(soc):
+    """Odbieranie wiadomości w tle."""
+    while True:
+        try:
+            data, addr = soc.recvfrom(1024)
+            print(f"\n[KOLEGA {addr}]: {data.decode('utf-8')}")
+            print("Ty: ", end="", flush=True)
+        except:
+            break
 
-# def sluchaj(soc):
-#     """Odbieranie wiadomości w tle."""
-#     while True:
-#         try:
-#             data, addr = soc.recvfrom(1024)
-#             print(f"\n[KOLEGA {addr}]: {data.decode('utf-8')}")
-#             print("Ty: ", end="", flush=True)
-#         except:
-#             break
+username_input = input("Twoja nazwa użytkownika: ").strip()
 
-# def start_chat():
-#     # 1. Lista serwerów, które u Ciebie działają
-#     serwery_stun = [
-#         'stun1.l.google.com',
-#         'stun2.l.google.com',
-#         'stun.l.google.com',
-#         'stun.ekiga.net'
-#     ]
+def start_chat():
+    # 1. Lista serwerów, które u Ciebie działają
+    serwery_stun = [
+        'stun1.l.google.com',
+        'stun2.l.google.com',
+        'stun.l.google.com',
+        'stun.ekiga.net'
+    ]
 
-#     local_port = 2137
-#     external_ip = None
-#     external_port = None
-#     nat_type = None
+    local_port = 2137
+    external_ip = None
+    external_port = None
+    nat_type = None
 
-#     print(f"--- Inicjalizacja (Port lokalny: {local_port}) ---")
+    print(f"--- Inicjalizacja (Port lokalny: {local_port}) ---")
 
-#     # 2. Szukanie działającego serwera STUN przy zachowaniu portu
-#     for host in serwery_stun:
-#         try:
-#             print(f"Próba: {host}...", end=" ")
-#             # Bardzo ważne: source_port musi być taki sam jak port, na którym będziemy słuchać
-#             nat_type, external_ip, external_port = stun.get_ip_info(
-#                 stun_host=host, 
-#                 source_port=local_port
-#             )
-#             if external_ip:
-#                 print("SUKCES!")
-#                 break
-#         except Exception:
-#             print("Błąd.")
+    # 2. Szukanie działającego serwera STUN przy zachowaniu portu
+    for host in serwery_stun:
+        try:
+            print(f"Próba: {host}...", end=" ")
+            # Bardzo ważne: source_port musi być taki sam jak port, na którym będziemy słuchać
+            nat_type, external_ip, external_port = stun.get_ip_info(
+                stun_host=host, 
+                source_port=local_port
+            )
+            if external_ip:
+                print("SUKCES!")
+                break
+        except Exception:
+            print("Błąd.")
 
-#     if not external_ip:
-#         print("\nNie udało się połączyć z żadnym serwerem STUN. Sprawdź internet.")
-#         return
+    if not external_ip:
+        print("\nNie udało się połączyć z żadnym serwerem STUN. Sprawdź internet.")
+        return
 
-#     print("\n" + "="*40)
-#     print(f"TWOJE DANE:")
-#     print(f"IP:   {external_ip}")
-#     print(f"PORT: {external_port}")
-#     print(f"NAT:  {nat_type}")
-#     print("="*40 + "\n")
+    print("\n" + "="*40)
+    print(f"TWOJE DANE:")
+    print(f"IP:   {external_ip}")
+    print(f"PORT: {external_port}")
+    print(f"NAT:  {nat_type}")
+    print("="*40 + "\n")
 
-#     # 3. Tworzenie gniazda do rozmowy
-#     soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#     soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # 3. Tworzenie gniazda do rozmowy
+    soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     
-#     try:
-#         soc.bind(('0.0.0.0', local_port))
-#     except Exception as e:
-#         print(f"Błąd bindowania portu: {e}")
-#         return
+    try:
+        soc.bind(('0.0.0.0', local_port))
+    except Exception as e:
+        print(f"Błąd bindowania portu: {e}")
+        return
     
-#     # 4. Wymiana danych z kolegą przez rentry.co
-#     username = input("Twoja nazwa użytkownika: ").strip()
+    # 4. Wymiana danych z kolegą przez rentry.co
     
-#     wymi
+    try:
+        users = json_loads(wymien_aktywnych_uzytkownikow(1, username=username_input, operateOnSystem=True))["content"]["text"].splitlines()    
+    except TunnelFetchException as e:
+        print(f"Błąd pobierania danych użytkowników: {e}")
+        return
+        
+    usernames = [x.split()[0].rstrip("-") for x in users]
+    ips = [x.split()[1] for x in users]
     
+    print("Sprawdzanie, czy podana nazwa użytkownika istnieje w toku...")
 
-#     # 5. Dane kolegi
+    if (username_input in usernames):
+        index = usernames.index(username_input)
+        if f"{external_ip}:{external_port}" == ips[index]:
+            print("Podana nazwa użytkownika należy do Ciebie...")
+        else:
+            print("Podana nazwa użytkownika należy do kogoś innego. Wybierz inną nazwę.")
+    else:
+        print("Nie wykryto użytkownika o podanej nazwie.")
+        print("Nadpisywanie bazy danych w toku...")
 
+        try:
+            wymien_aktywnych_uzytkownikow(2, username=username_input, data=f"{external_ip}:{external_port}", operateOnSystem=True)
+        except TunnelUpdateException as e:
+            print(f"Błąd aktualizacji danych użytkowników: {e}")
+            return        
+
+    print("Oczekiwanie na użytkowników w toku...")
+    # 5. Dane kolegi
+
+    while True:
+        try:
+            users = json_loads(wymien_aktywnych_uzytkownikow(1, username=username_input, operateOnSystem=True))["content"]["text"].splitlines()    
+            usernames = [x.split()[0].rstrip("-") for x in users]
+            ips = [x.split()[1] for x in users]
+            if len(usernames) > 1:
+                print(f"Dostępni nowi użytkownicy {len(usernames) - 1}:")
+                for i, name in enumerate(usernames):
+                    if name != username_input:
+                        print(f"{i}. {name} ({ips[i]})")
+                choice = input("Wybierz użytkownika do czatu (podaj numer): ").strip()
+                if choice.isdigit() and 0 <= int(choice) < len(usernames):
+                    peer_ip, peer_port = ips[int(choice)].split(":")
+                    peer_port = int(peer_port)
+                    print(f"Wybrano użytkownika {usernames[int(choice)]} ({peer_ip}:{peer_port})")
+                    break
+        except TunnelFetchException as e:
+            print("\nZamykanie...")
+            try:
+                wymien_aktywnych_uzytkownikow(2, username=username_input, data=">deleteSignal<", operateOnSystem=True)
+            except TunnelUpdateException as e:
+                print(f"Błąd aktualizacji danych użytkowników: {e}")
+            sys.exit()
+        sleep(5)
+
+    # 6. Start czatu
+    threading.Thread(target=sluchaj, args=(soc,), daemon=True).start()
+
+    print("\n--- CZAT AKTYWNY (wpisz 'exit' by wyjść) ---")
+    print("Wskazówka: Jeśli wiadomości nie dochodzą, wyślijcie 'test' obaj w tym samym momencie.")
     
+    while True:
+        msg = input("Ty: ")
+        if msg.lower() == 'exit':
+            break
+        if msg:
+            soc.sendto(msg.encode('utf-8'), (peer_ip, peer_port))
 
-#     # 6. Start czatu
-#     threading.Thread(target=sluchaj, args=(soc,), daemon=True).start()
-
-#     print("\n--- CZAT AKTYWNY (wpisz 'exit' by wyjść) ---")
-#     print("Wskazówka: Jeśli wiadomości nie dochodzą, wyślijcie 'test' obaj w tym samym momencie.")
-    
-#     while True:
-#         msg = input("Ty: ")
-#         if msg.lower() == 'exit':
-#             break
-#         if msg:
-#             soc.sendto(msg.encode('utf-8'), (peer_ip, peer_port))
-
-# if __name__ == "__main__":
-#     try:
-#         start_chat()
-#     except KeyboardInterrupt:
-#         print("\nZamykanie...")
-#         sys.exit()
+if __name__ == "__main__":
+    try:
+        start_chat()
+    except KeyboardInterrupt:
+        print("\nZamykanie...")
+        try:
+            wymien_aktywnych_uzytkownikow(2, username=username_input, data=">deleteSignal<", operateOnSystem=True)
+        except TunnelUpdateException as e:
+            print(f"Błąd aktualizacji danych użytkowników: {e}")
+        sys.exit()
