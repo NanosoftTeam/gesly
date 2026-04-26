@@ -47,5 +47,6 @@ while True:
     message = input("Ty: ")
     if message.lower() == "exit":
         print("👋 Zakończono rozmowę.")
+        rentry_session.deleteIP()  # Usunięcie wpisu z Rentry
         break
     p2p_session.send(peer_ip, peer_port, message)
