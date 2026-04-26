@@ -1,10 +1,10 @@
+import os
 import http.cookiejar
 
 import urllib.parse
 import urllib.request
 from http.cookies import SimpleCookie
 from json import loads as json_loads
-
 
 class UrllibClient:
     """Klient HTTP z obsługą sesji i ciasteczek."""
@@ -31,7 +31,7 @@ class UrllibClient:
 class TunnelCreateException(Exception):
     """Wyjątek zgłaszany przy błędzie tworzenia tunelu."""
     pass
-class TunnelFetchException(Exception):
+class TunnelRawException(Exception):
     """Wyjątek zgłaszany przy błędzie pobierania tunelu."""
     pass
 class TunnelUpdateException(Exception):
@@ -47,41 +47,45 @@ class RentrySession:
         self.tunnelName = "tunnel-system-gesly"
         self.userName = userName
         self.data = ""
-        self._headers = {"Referer": f"https://rentry.co"}
+        self._headers = {"Referer": "https://rentry.co"}
+        auth = os.getenv("rentry-auth")
+        self._headers["rentry-auth"] = auth
 
     def getCSRF(self) -> str:
         client, cookie = UrllibClient(), SimpleCookie()
-        cookie.load(vars(UrllibClient().get(f"https://rentry.co"))['headers']['Set-Cookie'])
+        cookie.load(vars(client.get(f"https://rentry.co", headers=self._headers))['headers']['Set-Cookie'])
         return cookie['csrftoken'].value
 
     def getData(self):
         # ========================== Pobieranie CSRF tokenu ==========================
         csrftoken = self.getCSRF()
+        print(f"CSRF token: {csrftoken}")
         # ============================================================================
         payload = {
             """Pobieranie danych użytkowników z tunelu systemowego lub tunelu użytkownika."""
             "csrfmiddlewaretoken": csrftoken,
             "text": f"tunnel-system-gesly",
-            "edit_code": f"GeslySystemPassword123",
         }
-        result_fetch = UrllibClient().post(f"https://rentry.co/api/fetch/{self.tunnelName}",
-                                   payload, headers={"Referer": f"https://rentry.co"}).data
+        
+        result_fetch = UrllibClient().post(f"https://rentry.co/api/raw/{self.tunnelName}",
+                                   payload, headers=self._headers).data
         if "errors" in result_fetch:
-            raise TunnelFetchException("Błąd pobierania danych użytkowników.")
+            print(result_fetch)
+            raise TunnelRawException("Błąd pobierania danych użytkowników.")
 
         return result_fetch
 
     def getUsers(self, data=None):
         if data is None:
             data = self.getData()
-        list = json_loads(data)["content"]["text"].splitlines()
+        list = json_loads(data)["content"].splitlines()
         users = [x.split("- ") for x in list]
         return users
 
     def getUser(self, data=None, nick=""):
         if data is None:
             data = self.getData()
-        list = json_loads(data)["content"]["text"].splitlines()
+        list = json_loads(data)["content"].splitlines()
         users = [x.split("- ") for x in list]
 
         for user in users:
@@ -120,7 +124,7 @@ class RentrySession:
             "edit_code": f"GeslySystemPassword123",
         }
         result_update = UrllibClient().post(f"https://rentry.co/api/edit/{self.tunnelName}",
-                                    payload, headers={"Referer": f"https://rentry.co"})
+                                    payload, headers=self._headers)
 
         # Obsługa błędu
         if "errors" in result_update.data:
@@ -131,7 +135,10 @@ class RentrySession:
 
     def deleteIP(self): #dlaczego to nie działa?
         data = self.getData()
+        print(data)
         users = self.getUsers(data)
+        print()
+        print(users)
         # ========================== Pobieranie CSRF tokenu ==========================
         csrftoken = self.getCSRF()
         # ============================================================================
@@ -145,15 +152,6 @@ class RentrySession:
             else:
                 i += 1
 
-        # print(users)
-
-        # # Usunięcie użytkownika z systemu
-        # current_users_list = [x.strip() for x in current_users.splitlines()]
-        # current_users_list = [line for line in current_users_list if line.split("-")[0] != self.userName]
-
-        # # Nadpisanie daty
-        # data = "\n".join(current_users_list)
-
         data_new = "\n".join(["- ".join(x) for x in users])
         payload = {
             """Aktualizacja danych użytkowników w tunelu systemowym lub tunelu użytkownika."""
@@ -165,7 +163,7 @@ class RentrySession:
         # print(data_new)
         uclient = UrllibClient()
         result_update = uclient.post(f"https://rentry.co/api/edit/{self.tunnelName}",
-                                    payload, headers={"Referer": f"https://rentry.co"})
+                                    payload, headers=self._headers)
 
         print(payload)
 
@@ -200,8 +198,3 @@ class RentrySession:
 
         print("Zaktualizowano dane systemowe.")
         return result_update.data
-
-# session = RentrySession(input("nazwa: "))
-# session.updateIP("172.16.31.10", "1234")
-# session.deleteIP()
-# print(session.getUsers())
