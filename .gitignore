@@ -62,3 +62,5 @@ var/
 logs/
 /venv/
 .env
+/env14/
+/.vscode

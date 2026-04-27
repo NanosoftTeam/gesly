@@ -18,6 +18,9 @@ print(f"\n🌍 Twój adres zewnętrzny: {external_ip}:{external_port}")
 # Rejestracja użytkownika
 nickname = input("Twój nick: ")
 rentry_session = RentrySession(nickname)
+if not rentry_session.verifyIfUserExists():
+    print("❌ Użytkownik o takim nicku już istnieje. Wybierz inny.")
+    sys.exit(1)
 rentry_session.updateIP(external_ip, external_port)
 
 # Wyświetlenie dostępnych użytkowników
@@ -27,6 +30,16 @@ for user in rentry_session.getUsers():
 
 # Wybór rozmówcy
 target_nick = input("\nNick rozmówcy: ")
+
+if target_nick == "exit":
+    print("❌ Zakończono program.")
+    rentry_session.deleteIP()
+    sys.exit(1)
+elif target_nick == nickname:
+    print("❌ Nie możesz rozmawiać sam ze sobą.")
+    rentry_session.deleteIP()
+    sys.exit(1)
+
 peer = rentry_session.getUser(nick=target_nick)
 print(peer)
 

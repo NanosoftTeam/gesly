@@ -51,6 +51,15 @@ class RentrySession:
         auth = os.getenv("rentry-auth")
         self._headers["rentry-auth"] = auth
 
+    def verifyIfUserExists(self):
+        data = self.getData()
+        users = self.getUsers(data)
+
+        for user in users:
+            if user[0] == self.userName:
+                return False
+        return True
+    
     def getCSRF(self) -> str:
         client, cookie = UrllibClient(), SimpleCookie()
         cookie.load(vars(client.get(f"https://rentry.co", headers=self._headers))['headers']['Set-Cookie'])
@@ -133,12 +142,9 @@ class RentrySession:
         print("Zaktualizowano dane użytkowników.")
         return result_update.data
 
-    def deleteIP(self): #dlaczego to nie działa?
+    def deleteIP(self):
         data = self.getData()
-        print(data)
         users = self.getUsers(data)
-        print()
-        print(users)
         # ========================== Pobieranie CSRF tokenu ==========================
         csrftoken = self.getCSRF()
         # ============================================================================
@@ -164,8 +170,6 @@ class RentrySession:
         uclient = UrllibClient()
         result_update = uclient.post(f"https://rentry.co/api/edit/{self.tunnelName}",
                                     payload, headers=self._headers)
-
-        print(payload)
 
         # Obsługa błędu
         if "errors" in result_update.data:
