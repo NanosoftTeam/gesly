@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conversation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap');
+    * { font-family: Tahoma, 'Segoe UI', sans-serif; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { margin: 0; background: #f0f8ff; }
+
+    .gradient-titlebar { background: linear-gradient(180deg, #5b9bd5 0%, #2e6fb0 40%, #1a5a9f 100%); }
+    .gradient-chat-header { background: linear-gradient(180deg, #cde0f5, #b0cce8); }
+    .gradient-chat-toolbar { background: linear-gradient(180deg, #eef5fc, #deeaf7); }
+    .gradient-chat-input-bg { background: #f0f8ff; }
+    .gradient-send { background: linear-gradient(180deg, #e8f2fc, #c0d8f0); }
+    .gradient-send:hover { background: linear-gradient(180deg, #d0e8fc, #a8c8e8); }
+    .gradient-nudge { background: linear-gradient(180deg, #fff0e0, #ffe0b0); }
+    .gradient-nudge:hover { background: linear-gradient(180deg, #ffe8c0, #ffd080); }
+    .window-titlebar { -webkit-app-region: drag; cursor: move; user-select: none; }
+    .window-titlebar button { -webkit-app-region: no-drag; cursor: pointer; }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #e0eeff; }
+    ::-webkit-scrollbar-thumb { background: #7aaad0; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="chatWindow" class="flex flex-col w-full h-full border border-[#4a7eb5] rounded-sm overflow-hidden"
+    style="box-shadow: 3px 3px 10px rgba(0,0,0,0.35);">
+
+    <div class="window-titlebar gradient-titlebar flex items-center justify-between px-2 py-1">
+      <span id="chatTitle" class="text-white text-[11px] font-bold" style="text-shadow: 0 1px 2px rgba(0,0,0,0.4);">Conversation</span>
+      <button onclick="window.close()" class="text-white font-bold text-xs">✕</button>
+    </div>
+
+    <div class="gradient-chat-header flex items-center gap-2 px-2.5 py-1.5 border-b border-[#8ab3d9]">
+      <div id="chatAvatar" class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-lg" style="background:linear-gradient(135deg,#fde8f0,#f8b8d0);">💬</div>
+      <div>
+        <div id="chatName" class="text-[13px] font-bold text-[#1a3e6b]">Conversation</div>
+        <div class="text-[10px] text-[#6688aa] italic">Online - Windows Live Messenger</div>
+      </div>
+    </div>
+
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-2 gradient-chat-input-bg flex flex-col gap-1">
+      <div class="flex flex-col">
+        <div id="initSender" class="text-[10px] font-bold text-[#b03030] mb-0.5">Conversation</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#fff0f0] border border-[#e0a0a0]">heyyy! did u watch that new episode?? 😱</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:12 PM</div>
+      </div>
+      <div class="flex flex-col">
+        <div class="text-[10px] font-bold text-[#2e6fb0] mb-0.5">xX_DarkAngel_Xx</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#e8f4fe] border border-[#a0c8e8]">YESSS omg i cant believe what happened 😲</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:13 PM</div>
+      </div>
+      <div class="flex flex-col">
+        <div id="initSender2" class="text-[10px] font-bold text-[#b03030] mb-0.5">Conversation</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#fff0f0] border border-[#e0a0a0]">ik right!! i literally screamed lmao 😂😂</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:13 PM</div>
+      </div>
+    </div>
+
+    <div class="gradient-chat-toolbar flex gap-1 px-1.5 py-1 border-t border-[#c0d8f0] border-b">
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">😊 Emoticons</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">🖼 Wink</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">✎ Font</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">📎 File</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">🎮 Games</button>
+    </div>
+
+    <div class="flex flex-col gap-1 p-1.5 bg-white border-t border-[#c0d8f0]">
+      <textarea id="chatInput" onkeydown="handleKey(event)" placeholder="Type a message..."
+        class="w-full min-h-[50px] max-h-[80px] text-[12px] border border-[#aaccee] px-1.5 py-1 resize-none outline-none text-gray-800 focus:border-[#5b9bd5]"></textarea>
+      <div class="flex justify-end gap-1">
+        <button onclick="sendNudge()" class="gradient-nudge px-2.5 py-0.5 text-[11px] border border-[#d0a060] rounded-sm text-[#804000] font-normal">Nudge!</button>
+        <button onclick="sendMessage()" class="gradient-send px-3.5 py-0.5 text-[11px] border border-[#7aaad0] rounded-sm text-[#1a4a7a] font-bold">Send</button>
+      </div>
+    </div>
+  </div>
+  <script src="chat.js"></script>
+</body>
+</html>

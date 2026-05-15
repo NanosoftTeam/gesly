@@ -1,0 +1,25 @@
+{
+  "name": "gesly",
+  "version": "0.1.0",
+  "description": "Nowy komunikator P2P",
+  "homepage": "https://github.com/NanosoftTeam/gesly#readme",
+  "bugs": {
+    "url": "https://github.com/NanosoftTeam/gesly/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NanosoftTeam/gesly.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch:css": "npx @tailwindcss/cli -i ./styles.css -o ./tw.css --watch"
+  },
+  "devDependencies": {
+    "electron": "^42.0.0",
+    "tailwindcss": "^4.2.4"
+  }
+}

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows Live Messenger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap');
+    * { font-family: Tahoma, 'Segoe UI', sans-serif; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { margin: 0; background: linear-gradient(135deg, #c8dff5 0%, #a0c0e0 100%); display: block; padding: 0; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #e0eeff; }
+    ::-webkit-scrollbar-thumb { background: #7aaad0; border-radius: 3px; }
+
+    /* Gradient helpers not possible in pure Tailwind */
+    .gradient-titlebar { background: linear-gradient(180deg, #5b9bd5 0%, #2e6fb0 40%, #1a5a9f 100%); }
+    .gradient-profile  { background: linear-gradient(180deg, #cde0f5 0%, #b8d3ef 100%); }
+    .gradient-toolbar  { background: linear-gradient(180deg, #e8f2fc, #d4e8f8); }
+    .gradient-group    { background: linear-gradient(180deg, #ddeeff, #c8dff5); }
+    .gradient-contact-hover:hover { background: linear-gradient(180deg, #ddeeff 0%, #cce0ff 100%); }
+    .gradient-avatar   { background: linear-gradient(135deg, #7ec8e3, #3a82c4); }
+    .gradient-send     { background: linear-gradient(180deg, #e8f2fc, #c0d8f0); }
+    .gradient-send:hover { background: linear-gradient(180deg, #d0e8fc, #a8c8e8); }
+    .gradient-nudge    { background: linear-gradient(180deg, #fff0e0, #ffe0b0); }
+    .gradient-nudge:hover { background: linear-gradient(180deg, #ffe8c0, #ffd080); }
+    .gradient-chat-header { background: linear-gradient(180deg, #cde0f5, #b0cce8); }
+    .gradient-chat-toolbar { background: linear-gradient(180deg, #eef5fc, #deeaf7); }
+    .gradient-chat-input-bg { background: #f0f8ff; }
+    .window-titlebar { -webkit-app-region: drag; cursor: move; user-select: none; }
+    .window-titlebar button { -webkit-app-region: no-drag; cursor: pointer; }
+
+    /* Chat window slide-in */
+    .chat-window { transition: right 0.25s ease; right: -420px; }
+    .chat-window.open { right: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════ MAIN CONTACT LIST WINDOW ═══════════════════ -->
+  <div id="mainWin" class="flex flex-col border border-[#4a7eb5] rounded-sm overflow-hidden" style="margin: 0 !important; width: 300px; height: 700px; box-shadow: 2px 2px 8px rgba(0,0,0,0.4);">
+
+    <!-- Title Bar -->
+    <div class="window-titlebar gradient-titlebar flex items-center justify-between px-2 py-1">
+      <span class="text-white text-[11px] font-bold" style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+        🟢 Windows Live Messenger
+      </span>
+      <div class="flex gap-0.5">
+        <button class="w-4 h-3.5 rounded-sm border border-white/30 text-white text-[9px] font-bold flex items-center justify-center" style="background: linear-gradient(180deg,#6db5e8,#4a90cc);">–</button>
+        <button class="w-4 h-3.5 rounded-sm border border-white/30 text-white text-[9px] font-bold flex items-center justify-center" style="background: linear-gradient(180deg,#6db5e8,#4a90cc);">□</button>
+        <button class="w-4 h-3.5 rounded-sm border border-white/30 text-white text-[9px] font-bold flex items-center justify-center" style="background: linear-gradient(180deg,#e87070,#c04040);" onclick="window.close()">✕</button>
+      </div>
+    </div>
+
+    <!-- My Profile -->
+    <div class="gradient-profile flex gap-2 items-center px-2.5 py-2 border-b border-[#8ab3d9]">
+      <div class="relative w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-sm border-2 border-[#5b8fc5] gradient-avatar text-2xl cursor-pointer">
+        🐱
+        <div id="myStatusDot" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500"></div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div id="myUsername" class="font-bold text-[13px] text-[#1a3e6b] truncate">xX_DarkAngel_Xx</div>
+        <div class="text-[11px] text-[#4a7eb5] italic mt-0.5 truncate">✨ living my best life lol</div>
+        <div class="mt-1">
+          <select id="myStatus" onchange="updateStatus()"
+            class="text-[10px] border border-[#8ab3d9] bg-white text-[#2e6fb0] px-0.5 py-0.5 rounded-sm cursor-pointer">
+            <option value="online">🟢 Online</option>
+            <option value="away">🟡 Away</option>
+            <option value="busy">🔴 Busy</option>
+            <option value="offline">⚫ Appear Offline</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Toolbar -->
+    <div class="gradient-toolbar flex gap-0.5 px-1.5 py-1 border-b border-[#9fc4e0]">
+      <button class="px-1.5 py-0.5 text-[10px] text-[#1a4a7a] border border-transparent rounded-sm hover:bg-[#ddeeff] hover:border-[#7aa8d0]">Add contact</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#1a4a7a] border border-transparent rounded-sm hover:bg-[#ddeeff] hover:border-[#7aa8d0]">View</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#1a4a7a] border border-transparent rounded-sm hover:bg-[#ddeeff] hover:border-[#7aa8d0]">Tools</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#1a4a7a] border border-transparent rounded-sm hover:bg-[#ddeeff] hover:border-[#7aa8d0]">Help</button>
+    </div>
+
+    <!-- Search -->
+    <div class="px-1.5 py-1 bg-[#ddeef9] border-b border-[#9fc4e0]">
+      <input id="searchBox" oninput="filterContacts()" placeholder="🔍  Search contacts..."
+        class="w-full px-2 py-0.5 text-[11px] border border-[#8ab3d9] rounded-full bg-white text-gray-700 outline-none" />
+    </div>
+
+    <!-- Contact List -->
+    <div id="contactsArea" class="flex-1 overflow-y-auto bg-white">
+
+      <!-- Group: Online -->
+      <div id="group-online">
+        <div onclick="toggleGroup('online')" class="gradient-group flex items-center gap-1 px-2 py-1 border-b border-[#b0cce8] cursor-pointer select-none text-[#2e5f9a] text-[11px] font-bold hover:brightness-95">
+          <span id="arrow-online" class="text-[9px] transition-transform">▼</span>
+          <span id="online-count">Online (0)</span>
+        </div>
+        <div id="contacts-online">
+          <div onclick="openChat('Katie 🌸','🌸')" class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-sm" style="background:linear-gradient(135deg,#fde8f0,#f8b8d0);">
+              🌸<div class="status-dot absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-green-500"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] font-bold text-[#1a3e6b] truncate">Katie 🌸</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">omg that movie was SO good!!</div>
+            </div>
+          </div>
+          <div onclick="openChat('MikeXtreme','🤘')" class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-sm" style="background:linear-gradient(135deg,#e8fde8,#b8f0b8);">
+              🤘<div class="status-dot absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-green-500"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] font-bold text-[#1a3e6b] truncate">MikeXtreme</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">yo check out this sick track →</div>
+            </div>
+          </div>
+          <div onclick="openChat('Sarah_xoxo','💜')" class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-sm" style="background:linear-gradient(135deg,#f0e8fd,#d0b8f8);">
+              💜<div class="status-dot absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-yellow-400"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] font-bold text-[#1a3e6b] truncate">Sarah_xoxo</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">*Away* brb dinner 🍕</div>
+            </div>
+          </div>
+          <div onclick="openChat('DJ_TurboFuzz','🎧')" class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-sm" style="background:linear-gradient(135deg,#e8f0fd,#b8c8f8);">
+              🎧<div class="status-dot absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-red-500"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] font-bold text-[#1a3e6b] truncate">DJ_TurboFuzz</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">*Busy* 🎵 Linkin Park - NMB</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group: Offline -->
+      <div id="group-offline">
+        <div onclick="toggleGroup('offline')" class="gradient-group flex items-center gap-1 px-2 py-1 border-b border-[#b0cce8] cursor-pointer select-none text-[#2e5f9a] text-[11px] font-bold hover:brightness-95">
+          <span id="arrow-offline" class="text-[9px] transition-transform">▼</span>
+          <span id="offline-count">Offline (0)</span>
+        </div>
+        <div id="contacts-offline">
+          <div onclick="openChat('Gr3g0r','😎')" class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer opacity-55">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#ccc] text-sm bg-gray-100">
+              😎<div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-gray-400"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] text-[#1a3e6b] truncate">Gr3g0r</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">Last seen 3 hours ago</div>
+            </div>
+          </div>
+          <div class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer opacity-55">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#ccc] text-sm bg-gray-100">
+              🏀<div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-gray-400"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] text-[#1a3e6b] truncate">BasketballKing99</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">Last seen yesterday</div>
+            </div>
+          </div>
+          <div class="contact-item gradient-contact-hover flex items-center gap-2 px-4 py-1 border-b border-[#eef5fc] cursor-pointer opacity-55">
+            <div class="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#ccc] text-sm bg-gray-100">
+              🦋<div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white bg-gray-400"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12px] text-[#1a3e6b] truncate">butterfly_dreams</div>
+              <div class="text-[10px] text-[#6688aa] italic truncate">emo forever 💀</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════ CHAT WINDOW ═══════════════════ -->
+  <div id="chatWindow" class="chat-window fixed top-16 flex flex-col w-[400px] h-[440px] border border-[#4a7eb5] rounded-sm overflow-hidden"
+    style="box-shadow: 3px 3px 10px rgba(0,0,0,0.35);">
+
+    <!-- Chat Title Bar -->
+    <div class="window-titlebar gradient-titlebar flex items-center justify-between px-2 py-1">
+      <span id="chatTitle" class="text-white text-[11px] font-bold" style="text-shadow: 0 1px 2px rgba(0,0,0,0.4);">Conversation</span>
+      <button onclick="document.getElementById('chatWindow').classList.remove('open')" class="text-white font-bold text-xs">✕</button>
+    </div>
+
+    <!-- Chat Header -->
+    <div class="gradient-chat-header flex items-center gap-2 px-2.5 py-1.5 border-b border-[#8ab3d9]">
+      <div id="chatAvatar" class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-sm border border-[#7aaacf] text-lg" style="background:linear-gradient(135deg,#fde8f0,#f8b8d0);">🌸</div>
+      <div>
+        <div id="chatName" class="text-[13px] font-bold text-[#1a3e6b]">Katie 🌸</div>
+        <div class="text-[10px] text-[#6688aa] italic">Online — Windows Live Messenger</div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-2 gradient-chat-input-bg flex flex-col gap-1">
+      <div class="flex flex-col">
+        <div id="initSender" class="text-[10px] font-bold text-[#b03030] mb-0.5">Katie 🌸</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#fff0f0] border border-[#e0a0a0]">heyyy! did u watch that new episode?? 😱</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:12 PM</div>
+      </div>
+      <div class="flex flex-col">
+        <div class="text-[10px] font-bold text-[#2e6fb0] mb-0.5">xX_DarkAngel_Xx</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#e8f4fe] border border-[#a0c8e8]">YESSS omg i cant believe what happened 😲</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:13 PM</div>
+      </div>
+      <div class="flex flex-col">
+        <div id="initSender2" class="text-[10px] font-bold text-[#b03030] mb-0.5">Katie 🌸</div>
+        <div class="max-w-[85%] px-2 py-1 rounded-sm text-[12px] leading-snug bg-[#fff0f0] border border-[#e0a0a0]">ik right!! i literally screamed lmao 😂😂</div>
+        <div class="text-[10px] text-gray-400 mt-0.5">7:13 PM</div>
+      </div>
+    </div>
+
+    <!-- Chat Toolbar -->
+    <div class="gradient-chat-toolbar flex gap-1 px-1.5 py-1 border-t border-[#c0d8f0] border-b">
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">😊 Emoticons</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">🖼 Wink</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">🖋 Font</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">📎 File</button>
+      <button class="px-1.5 py-0.5 text-[10px] text-[#2e5f9a] border border-transparent rounded-sm hover:bg-[#cde0f5] hover:border-[#7aaad0]">🎮 Games</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="flex flex-col gap-1 p-1.5 bg-white border-t border-[#c0d8f0]">
+      <textarea id="chatInput" onkeydown="handleKey(event)" placeholder="Type a message..."
+        class="w-full min-h-[50px] max-h-[80px] text-[12px] border border-[#aaccee] px-1.5 py-1 resize-none outline-none text-gray-800 focus:border-[#5b9bd5]"></textarea>
+      <div class="flex justify-end gap-1">
+        <button onclick="sendNudge()" class="gradient-nudge px-2.5 py-0.5 text-[11px] border border-[#d0a060] rounded-sm text-[#804000] font-normal">Nudge!</button>
+        <button onclick="sendMessage()" class="gradient-send px-3.5 py-0.5 text-[11px] border border-[#7aaad0] rounded-sm text-[#1a4a7a] font-bold">Send</button>
+      </div>
+    </div>
+  </div>
+  <script src="scripts.js"></script>
+</body>
+</html>

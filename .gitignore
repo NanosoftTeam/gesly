@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+node_modules/
+
 # OSX useful to ignore
 *.DS_Store
 .AppleDouble
@@ -64,3 +66,4 @@ logs/
 .env
 /env14/
 /.vscode
+CODEX.md
